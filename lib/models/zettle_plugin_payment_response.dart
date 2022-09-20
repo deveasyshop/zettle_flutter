@@ -39,7 +39,7 @@ class ZettlePluginPaymentResponse {
         status = ZettlePluginPaymentStatus.failed;
     }
 
-    amount = response['amount'];
+    amount = response['amount'] is int? (response['amount'] as int).toDouble() :response['amount'];
     gratuityAmount = response['gratuityAmount'];
     cardType = response['cardType'];
     cardPaymentEntryMode = response['cardPaymentEntryMode'];
@@ -73,8 +73,8 @@ class ZettlePluginPaymentResponse {
   late String? panHash;
   late String? applicationName;
   late String? authorizationCode;
-  late String? installmentAmount;
-  late String? nrOfInstallments;
+  late int? installmentAmount;
+  late int? nrOfInstallments;
   late String? mxFiid;
   late String? mxCardType;
   late String? reference;
