@@ -67,7 +67,6 @@ class ZettlePlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginRegis
   override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
     Log.d(tag, "onReattachedToActivityForConfigChanges")
   }
-
   override fun onDetachedFromActivity() {
     Log.d(tag, "onDetachedFromActivity")
     if (sdkStarted) {
@@ -282,12 +281,10 @@ class ZettlePlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginRegis
 
       currentOp.response.status = result
 
-      when (ZettleTask.valueOf(requestCode)) {
-        ZettleTask.REQUEST_PAYMENT -> {
-
-          when (val paymentResult: CardPaymentResult? =
-                  data.getParcelableExtra(CardPaymentActivity.RESULT_EXTRA_PAYLOAD)) {
-            is CardPaymentResult.Completed -> {
+      var requestCode = ZettleTask.valueOf(requestCode)
+      if(requestCode == ZettleTask.REQUEST_PAYMENT) {
+          val paymentResult: CardPaymentResult? = data.getParcelableExtra(CardPaymentActivity.RESULT_EXTRA_PAYLOAD)
+          if(paymentResult is CardPaymentResult.Completed ){
               currentOp.response.status = true
               currentOp.response.message = mutableMapOf(
                       "status" to "completed",
@@ -311,28 +308,22 @@ class ZettlePlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginRegis
                       "panHash" to paymentResult.payload.panHash,
                       "reference" to paymentResult.payload.reference?.id,
               )
-            }
-            is CardPaymentResult.Canceled -> {
+            }else if(paymentResult is CardPaymentResult.Canceled) {
               currentOp.response.status = false
               currentOp.response.message = mutableMapOf(
                       "status" to "canceled"
               )
-            }
-            is CardPaymentResult.Failed -> {
+            }else if(paymentResult is CardPaymentResult.Failed){
               currentOp.response.message = mutableMapOf(
                       "status" to "failed",
               )
             }
-          }
+        currentOp.flutterResult()
+        operations.remove(currentOp.response.methodName)
+          } else if(requestCode == ZettleTask.REQUEST_REFUND){
+          val paymentResult: RefundResult? = data.getParcelableExtra(CardPaymentActivity.RESULT_EXTRA_PAYLOAD)
+          if (paymentResult is RefundResult.Completed) {
 
-          currentOp.flutterResult()
-          operations.remove(currentOp.response.methodName)
-        }
-        ZettleTask.REQUEST_REFUND -> {
-
-          when (val paymentResult: RefundResult? =
-                  data.getParcelableExtra(CardPaymentActivity.RESULT_EXTRA_PAYLOAD)) {
-            is RefundResult.Completed -> {
               currentOp.response.status = true
               currentOp.response.message = mutableMapOf(
                       "status" to "completed",
@@ -342,32 +333,30 @@ class ZettlePlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginRegis
                       "maskedPan" to paymentResult.payload.maskedPan,
                       "cardPaymentUUID" to paymentResult.payload.cardPaymentUUID,
               )
-            }
-            is RefundResult.Canceled -> {
+            } else if (paymentResult is RefundResult.Canceled) {
               currentOp.response.status = false
               currentOp.response.message = mutableMapOf(
                       "status" to "canceled"
               )
-            }
-            is RefundResult.Failed -> {
+            }else if (paymentResult is RefundResult.Failed) {
               currentOp.response.status = false
               currentOp.response.message = mutableMapOf(
                       "status" to "failed",
               )
             }
+        currentOp.flutterResult()
+        operations.remove(currentOp.response.methodName)
           }
 
 
-          currentOp.flutterResult()
-          operations.remove(currentOp.response.methodName)
-        }
-        else -> {
+
+
+        else {
           currentOp.response.message = mutableMapOf("errors" to "Intent Data and/or Extras are null or empty")
           currentOp.response.status = false
           currentOp.flutterResult()
           operations.remove(currentOp.response.methodName)
         }
-      }
     } else {
       currentOp.response.message = mutableMapOf("errors" to "Intent Data and/or Extras are null or empty")
       currentOp.response.status = false
@@ -376,6 +365,7 @@ class ZettlePlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginRegis
     }
     return currentOp.response.status
   }
+
 }
 
 
